@@ -47,11 +47,16 @@ def process_instance(
         env = SWEEnvironment(instance)
         # Initialize the agent
         agent = ReactAgent("swe-agent", parser, llm)
+        
+        # Add environment tools
+        agent.add_functions([env.run_bash_cmd])
+        # TODO(student): Add more custom functions if needed
+        # agent.add_functions([env.replace_in_file, env.show_file, ...])
+        
         # Run the agent
         output = agent.run(task, max_steps) 
         
-        # TODO(student): Add more functions here
-        # agent.add_functions([env.run_bash_cmd, env.replace_in_file, env.show_file, ...])
+        print(f"Output: {output}")
         
         # Generate patch for SWE-Bench
         result = env.generate_patch(output)
@@ -86,6 +91,7 @@ def main(
     dataset_path = DATASET_MAPPING.get(subset, subset)
     print(f"Loading dataset {dataset_path}, split {split}...")
     instances = list(load_dataset(dataset_path, split=split))
+    # instances = instances[:1]
     print(f"Running on {len(instances)} instances...")
 
     def process_futures(futures: dict[concurrent.futures.Future, str]):

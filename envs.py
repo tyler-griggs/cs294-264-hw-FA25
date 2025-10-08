@@ -29,22 +29,30 @@ class SWEEnvironment:
             The output of running the shell command
         """
         try:
-            output = self.env.execute(command)
+            result = self.env.execute(command)
+            if result["returncode"] != 0:
+                raise ValueError(result["output"])
+            return result["output"]
         except subprocess.TimeoutExpired as e:
             output = e.output.decode("utf-8", errors="replace") if e.output else ""
             raise ValueError(output)
         except TimeoutError:
             raise ValueError("TimeoutError")
-        return output
     
     def generate_patch(self, result: str) -> str:
         """
         Generate a patch from the result (for SWE-Bench)
         """
         try:
-            patch_output = self.env.execute("git add -A && git diff --cached")
-            if patch_output.strip():
-                return patch_output
+            patch_result = self.env.execute("git add -A && git diff --cached")
+            if patch_result["returncode"] != 0:
+                return f"{result}\n\nError running git commands: {patch_result['output']}"
+            patch_output = patch_result["output"]
+            print(f"\n\npatch_output: {patch_output}")
+            stripped = patch_output.strip()
+            print(f"\n\nstripped: {stripped} <END_STRIPPED>")
+            if stripped:
+                return stripped
             else:
                 return f"{result}\n\nNo changes detected to generate a patch."
         except Exception as e:

@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+import os
+from openai import OpenAI
 
 
 class LLM(ABC):
@@ -23,12 +25,22 @@ class OpenAIModel(LLM):
     """
 
     def __init__(self, stop_token: str, model_name: str = "gpt-5-mini"):
-        # TODO(student): Initialize your OpenAI client or chosen LLM provider here.
+        self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         self.stop_token = stop_token
         self.model_name = model_name
-        raise NotImplementedError("OpenAIModel.__init__ must be implemented by the student")
 
     def generate(self, prompt: str) -> str:
-        # TODO(student): Call the model, obtain text, and ensure the stop token is present.
-        # Return the raw text including the terminal stop token required by the parser.
-        raise NotImplementedError("OpenAIModel.generate must be implemented by the student")
+        # Call OpenAI API to generate response
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        
+        # Extract the text content from the response
+        text = response.choices[0].message.content
+        
+        # Ensure the stop token is present at the end
+        if not text.endswith(self.stop_token):
+            text += "\n" + self.stop_token
+        
+        return text

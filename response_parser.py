@@ -33,11 +33,46 @@ arg2_value (can be multiline)
 
         Returns a dictionary: {"thought": str, "name": str, "arguments": dict}
         """
-        # TODO(student): Implement rfind-based parsing per the assignment description.
-        # Hints:
-        # - Find END_CALL via rfind; then find the matching BEGIN_CALL before it via rfind
-        # - Everything before BEGIN_CALL is the model's thought
-        # - Between BEGIN_CALL and END_CALL: first block is function name, subsequent blocks
-        #   are argument name/value pairs separated by ARG_SEP, values may be multiline
-        # - Raise ValueError on malformed inputs
-        raise NotImplementedError("ResponseParser.parse must be implemented by the student")
+        if not isinstance(text, str):
+            raise ValueError("Expected `text` to be a string")
+
+        end_idx = text.rfind(self.END_CALL)
+        if end_idx == -1:
+            raise ValueError("Missing END_CALL marker")
+
+        begin_idx = text.rfind(self.BEGIN_CALL, 0, end_idx)
+        if begin_idx == -1:
+            raise ValueError("Missing BEGIN_CALL marker before END_CALL")
+
+        thought = text[:begin_idx].rstrip()
+        block = text[begin_idx + len(self.BEGIN_CALL):end_idx].strip()
+        if not block:
+            raise ValueError("Empty function call block")
+
+        lines = [ln.rstrip("\n") for ln in block.splitlines()]
+        if not lines or not lines[0].strip():
+            raise ValueError("Missing function name")
+        func_name = lines[0].strip()
+
+        args = {}
+        i = 1
+        while i < len(lines):
+            if lines[i].strip() == self.ARG_SEP:
+                i += 1
+                if i >= len(lines):
+                    raise ValueError("ARG_SEP without argument name")
+                arg_name = lines[i].strip()
+                if not arg_name:
+                    raise ValueError("Empty argument name")
+                i += 1
+                # Collect value lines until next ARG_SEP or end-of-block
+                val_start = i
+                while i < len(lines) and lines[i].strip() != self.ARG_SEP:
+                    i += 1
+                arg_val = "\n".join(lines[val_start:i]).rstrip()
+                args[arg_name] = arg_val
+            else:
+                # Ignore any stray lines outside ARG_SEP blocks
+                i += 1
+
+        return {"thought": thought, "name": func_name, "arguments": args}
