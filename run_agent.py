@@ -49,7 +49,7 @@ def process_instance(
         agent = ReactAgent("swe-agent", parser, llm)
         
         # Add environment tools
-        agent.add_functions([env.run_bash_cmd])
+        agent.add_functions([env.run_bash_cmd, env.search_repo])
         # TODO(student): Add more custom functions if needed
         # agent.add_functions([env.replace_in_file, env.show_file, ...])
         
@@ -91,7 +91,9 @@ def main(
     dataset_path = DATASET_MAPPING.get(subset, subset)
     print(f"Loading dataset {dataset_path}, split {split}...")
     instances = list(load_dataset(dataset_path, split=split))
-    # instances = instances[:1]
+    
+    instance_ids = [instance['instance_id'] for instance in instances]
+    print(f"Instance IDs: {instance_ids}")
     print(f"Running on {len(instances)} instances...")
 
     def process_futures(futures: dict[concurrent.futures.Future, str]):
